@@ -27,6 +27,7 @@ const Admin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [userRole, setUserRole] = useState<"user" | "admin">("user");
 
   useEffect(() => {
     if (!authLoading && (!user || !isAdmin)) {
@@ -61,31 +62,40 @@ const Admin = () => {
     setLoading(true);
 
     try {
-      const redirectUrl = `${window.location.origin}/dashboard`;
+      const { data: { session } } = await supabase.auth.getSession();
       
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            username: username,
-          },
-        },
+      if (!session) {
+        toast.error("يجب تسجيل الدخول أولاً");
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email,
+          password,
+          username,
+          role: userRole
+        }
       });
 
       if (error) throw error;
 
-      toast.success("تم إنشاء المستخدم بنجاح!");
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      toast.success(`تم إنشاء ${userRole === 'admin' ? 'أدمن' : 'مستخدم'} جديد بنجاح!`);
       setEmail("");
       setPassword("");
       setUsername("");
+      setUserRole("user");
     } catch (error: any) {
       console.error("Create user error:", error);
-      if (error.message.includes("already registered")) {
+      if (error.message.includes("already registered") || error.message.includes("already exists")) {
         toast.error("هذا البريد الإلكتروني مسجل مسبقاً");
       } else {
-        toast.error("خطأ في إنشاء المستخدم");
+        toast.error(error.message || "خطأ في إنشاء المستخدم");
       }
     } finally {
       setLoading(false);
@@ -190,12 +200,25 @@ const Admin = () => {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="userRole">نوع المستخدم</Label>
+                <select
+                  id="userRole"
+                  value={userRole}
+                  onChange={(e) => setUserRole(e.target.value as "user" | "admin")}
+                  className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="user">مستخدم عادي</option>
+                  <option value="admin">أدمن</option>
+                </select>
+              </div>
+
               <Button
                 type="submit"
                 disabled={loading}
                 className="w-full bg-gradient-to-r from-primary to-accent"
               >
-                {loading ? "جاري الإنشاء..." : "إنشاء مستخدم"}
+                {loading ? "جاري الإنشاء..." : `إنشاء ${userRole === 'admin' ? 'أدمن' : 'مستخدم'}`}
               </Button>
             </form>
           </CardContent>
