@@ -20,11 +20,11 @@ const Index = () => {
           </p>
           <div className="flex gap-4 justify-center pt-6">
             <Button
-              onClick={() => navigate("/auth")}
+              onClick={() => navigate("/setup")}
               size="lg"
               className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all shadow-lg text-lg px-8"
             >
-              ابدأ الآن
+              إعداد النظام
             </Button>
             <Button
               onClick={() => navigate("/auth")}
